@@ -1,32 +1,6 @@
 package com.kh.dots.member.controller;
 
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.SessionAttributes;
-import org.springframework.web.bind.support.SessionStatus;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.kh.dots.chatting.model.service.ChatService;
 import com.kh.dots.chatting.model.vo.ChatRoom;
 import com.kh.dots.chatting.model.vo.ChatRoomJoin;
@@ -36,69 +10,70 @@ import com.kh.dots.common.model.vo.Images;
 import com.kh.dots.common.model.vo.Search;
 import com.kh.dots.common.service.CommonService;
 import com.kh.dots.feed.model.vo.Choice;
+import com.kh.dots.feed.model.vo.MyFeed;
 import com.kh.dots.feed.model.vo.Reply;
 import com.kh.dots.member.model.service.MemberService;
 import com.kh.dots.member.model.validator.MemberValidator;
 import com.kh.dots.member.model.vo.Friend;
 import com.kh.dots.member.model.vo.Member;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.File;
+import java.util.*;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SessionAttributes({"loginUser","nextUrl"})
 public class MemberController {
-	@Autowired
-	private CommonService cService;
-	
-	private MemberService mService;
-	
-	private MemberValidator memValidator;
-	
-	private BCryptPasswordEncoder bcrypotPasswordEncoder;
-	
-	@Autowired
-	private ServletContext application;
-	
-	@Autowired
-	private ChatService chService;
-	
-	public MemberController() {
-	}
-	
-	@Autowired
-	public MemberController(MemberService mService , MemberValidator memValidator , BCryptPasswordEncoder bcrypotPasswordEncoder) {
-		this.mService = mService;
-		this.memValidator = memValidator;
-		this.bcrypotPasswordEncoder = bcrypotPasswordEncoder;
-	}
-	
-	@Autowired
-	public void setMemberService(MemberService mService) {
-		this.mService = mService;
-	}
-	
+
+
+	private final CommonService cService;
+
+	private final MemberService mService;
+
+	private final MemberValidator memValidator;
+
+	private final BCryptPasswordEncoder bcrypotPasswordEncoder;
+
+	private final ServletContext application;
+
+	private final ChatService chService;
+
+
 	@InitBinder
 	public void initBinder(WebDataBinder binder) {
 		binder.addValidators(memValidator);
 	}
-	
 
-
-	
 	@GetMapping("/login.me")
 	public String loginMember() {
-		return "member/login.jsp";
+		return "member/login";
 	}
-	
+
 	@PostMapping("/login.me")
 	public String loginMember2() {
-		return "member/login.jsp";
+		return "member/login";
 	}
 	
 	@GetMapping("/enrollForm.me")
 	public String enrollForm() {
-		return "forward:member/Enroll_Form.jsp";
+		return "forward:member/Enroll_Form";
 	}
 	
 	@PostMapping("/login.melog")
@@ -157,7 +132,7 @@ public class MemberController {
 	
 		}else {
 			model.addAttribute("alertMsg","아이디 또는 비밀번호가 일치하지 않습니다.");
-			url = "forward:/member/login.jsp";
+			url = "forward:member/login";
 		}
 		
 		return url;
@@ -171,7 +146,7 @@ public class MemberController {
 		session.invalidate();
 		status.setComplete();
 		model.addAttribute("alertMsg", "로그아웃 되었습니다.");
-		return "forward:member/login.jsp";
+		return "forward:member/login";
 	}
 	
 	@ResponseBody
@@ -209,19 +184,18 @@ public class MemberController {
 		if(result > 0) {
 			//성공시
 			model.addAttribute("alertMsg", "회원가입성공");
-			url = "forward:member/login.jsp";
+			url = "forward:member/login";
 		}else {
 			//실패
 			model.addAttribute("alertMsg","회원가입실패");
-			url = "forward:member/login.jsp";
+			url = "forward:member/login";
 		}
 		
 		return url;
 	}
 	
 	@GetMapping("/sendSMS.me")
-    public @ResponseBody
-    String sendSMS(String userPhone) {
+    public String sendSMS(String userPhone) {
 
         Random rand  = new Random();
         String numStr = "";
@@ -235,10 +209,14 @@ public class MemberController {
         mService.certifiedPhoneNumber(userPhone,numStr);
         return numStr;
     }
-	
+
+	// o
 	@GetMapping("/MyFeed.me")
-	public String Myfeed(HttpSession session, Model model) {
-		Member loginUser = (Member)session.getAttribute("loginUser");
+	public ResponseEntity<MyFeed> Myfeed(HttpSession session) {
+
+		Object obj = session.getAttribute("loginUser");
+
+		Member loginUser =(Member)session.getAttribute("loginUser");
 		Images profileImg = mService.selectListImages(loginUser.getUserNo());
 		List<Images> myImglist = mService.selectListMyImg(loginUser.getUserNo());
 		log.info("myFeed={}",myImglist);
@@ -246,13 +224,13 @@ public class MemberController {
 		List<Member> follow = mService.searchFollowList(loginUser.getUserNo());
 		List<Choice> myChoice = mService.myChoiceList(loginUser.getUserNo());
 		List<Search> MyHistory1 = cService.MyHistory(loginUser.getUserNo());
-		List<Search> MyHistory = new ArrayList();
-		
+		List<Search> MyHistory = new ArrayList<>();
+
 		List<ChatRoom> crList = chService.selectChatRoomList(loginUser.getUserNo());
 		List<ChatRoomJoin> crImage = chService.selectChatRoomListImage(loginUser.getUserNo());
 		log.info("myChat={}",crList);
 		log.info("myChat2={}",crImage);
-		
+
 		for(int i=0; i<MyHistory1.size(); i++) {
 			if(i<8) {
 				Search s = MyHistory1.get(i);
@@ -261,18 +239,31 @@ public class MemberController {
 				break;
 			}
 		}
-		
-		model.addAttribute("chatRoomList", crList);
-		model.addAttribute("chatRoomImage", crImage);
-		
-		model.addAttribute("myChoice",myChoice);
-		model.addAttribute("myImglist", myImglist);
-		model.addAttribute("follower", follower);
-		model.addAttribute("follow", follow);
-		session.setAttribute("history",MyHistory);
-		return "member/MyFeed.jsp";
+
+		MyFeed f = new MyFeed();
+		f.setLoginUser(loginUser);
+		f.setProfileImg(profileImg);
+		f.setMyImglist(myImglist);
+		f.setFollower(follower);
+		f.setFollower(follow);
+		f.setMyChoice(myChoice);
+		f.setMyHistory1(MyHistory1);
+		f.setMyHistory(MyHistory);
+		f.setCrList(crList);
+		f.setCrImage(crImage);
+
+//		model.addAttribute("chatRoomList", crList);
+//		model.addAttribute("chatRoomImage", crImage);
+//		model.addAttribute("myChoice",myChoice);
+//		model.addAttribute("myImglist", myImglist);
+//		model.addAttribute("follower", follower);
+//		model.addAttribute("follow", follow);
+//		session.setAttribute("history",MyHistory);
+
+		return new ResponseEntity<>(f,HttpStatus.OK);
 	}
-	
+
+
 	@ResponseBody
 	@GetMapping("/detail.myfeed")
 	public List<Images> detailMyFeedModal(int imgNo) {
@@ -305,7 +296,7 @@ public class MemberController {
 		model.addAttribute("follow", follow);
 		model.addAttribute("otherUser", otherUser);
 		model.addAttribute("myImglist", myImglist); 
-		return "/member/YourFeed.jsp";
+		return "member/YourFeed";
 	}
 	
 	@GetMapping("/MyEdit.me")
@@ -314,19 +305,19 @@ public class MemberController {
 		Images profileImg = mService.selectListImages(loginUser.getUserNo());
 		log.info("loginUser = {}", loginUser);
 		log.info("profileImg = {}", profileImg);
-		return "/member/MyEdit.jsp";
+		return "member/MyEdit";
 	}
 	
 	
 	
 	@GetMapping("/changePwd")
 	public String changePwd() {
-		return "/member/changePwd.jsp";
+		return "member/changePwd";
 	}
 	
 	@GetMapping("/deleteUser")
 	public String deleteUser() {
-		return "/member/deleteUser.jsp";
+		return "member/deleteUser";
 	}
 	
 	@PostMapping("/update.me")
@@ -369,11 +360,16 @@ public class MemberController {
 		Images profileImg2 = mService.selectListImages(loginUser.getUserNo());
 		log.info("result2 = {}",profileImg2);
 		String url = "";
-		if(result > 0 && result2 > 0) {
+		if(result > 0 ) {
 			//성공시
+
 			model.addAttribute("loginUser",m);
-			session.setAttribute("profileImg", profileImg2);
+			if(result2 > 0){
+				session.setAttribute("profileImg", profileImg2);
+			}
 			session.setAttribute("alertMsg", "회원정보 수정 성공!");
+			Member user = mService.selectOne(m.getUserId());
+			session.setAttribute("loginUser", user);
 			url = "redirect:/MyFeed.me";
 		}else {
 			//성공시
@@ -390,7 +386,7 @@ public class MemberController {
 		if(bcrypotPasswordEncoder.matches(userPwd, loginUser.getUserPwd())) {
 			if(!userNewPwd.equals(userNewPwd1)) {
 				model.addAttribute("alertMsg","새비밀번호 변경에 실패했습니다.");
-				url = "member/changePwd.jsp";
+				url = "member/changePwd";
 			}else {
 				//암호화 작업
 				String encPwd = bcrypotPasswordEncoder.encode(userNewPwd);
@@ -401,11 +397,11 @@ public class MemberController {
 				log.info("userNo={}",m.getUserNo());
 				int result = mService.changePwd(m);
 				model.addAttribute("alertMsg","비밀번호가 변경되었습니다.");
-				url = "forward:/member/login.jsp";
+				url = "forward:member/login";
 			}
 		}else { 
 			model.addAttribute("alertMsg","비밀번호가 일치하지 않습니다.");
-			url = "member/changePwd.jsp";
+			url = "member/changePwd";
 		}
 		return url;
 	}
@@ -418,10 +414,10 @@ public class MemberController {
 		if(bcrypotPasswordEncoder.matches(m.getUserPwd(), loginUser.getUserPwd())) {
 				int result = mService.deleteUser(m);
 				model.addAttribute("alertMsg","회원탈퇴가 정상적으로 이루어졌습니다.");
-				url = "forward:/member/login.jsp";
+				url = "forward:member/login";
 		}else { 
 			model.addAttribute("alertMsg","비밀번호가 일치하지 않습니다.");
-			url = "member/deleteUser.jsp";
+			url = "member/deleteUser";
 		}
 		return url;
 	}
@@ -513,7 +509,7 @@ public class MemberController {
 		model.addAttribute("fr",follower);
 		model.addAttribute("fw",follow);
 		model.addAttribute("rf",rf);
-		return "/member/follow.jsp";
+		return "member/follow";
 	}
 	@ResponseBody
 	@PostMapping("/follow/followlist/unfollow")

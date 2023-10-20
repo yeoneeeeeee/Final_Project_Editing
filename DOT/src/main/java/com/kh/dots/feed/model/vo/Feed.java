@@ -1,12 +1,15 @@
 package com.kh.dots.feed.model.vo;
 
 import java.sql.Date;
+import java.util.List;
 
 
+import com.kh.dots.common.model.vo.Images;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @NoArgsConstructor
@@ -23,5 +26,10 @@ public class Feed {
 	private String feedHashtag; //	FEED_HASHTAG
 	
 	private String userNick;
-	
+
+	private List<MultipartFile> feedImgs;
+	private List<Images> imgs;
+	private List<Images> feedImgs2;
+	private List<MultipartFile> upfiles;
+
 }

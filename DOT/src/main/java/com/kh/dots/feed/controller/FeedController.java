@@ -1,15 +1,19 @@
 package com.kh.dots.feed.controller;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpSession;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.kh.dots.chatting.model.service.ChatService;
+import com.kh.dots.chatting.model.vo.ChatRoom;
+import com.kh.dots.chatting.model.vo.ChatRoomJoin;
+import com.kh.dots.common.Utils;
+import com.kh.dots.common.model.vo.Images;
+import com.kh.dots.feed.model.vo.*;
+import com.kh.dots.feed.service.FeedService;
+import com.kh.dots.member.model.service.MemberService;
+import com.kh.dots.member.model.vo.Friend;
+import com.kh.dots.member.model.vo.Member;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,42 +22,27 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.kh.dots.chatting.model.service.ChatService;
-import com.kh.dots.chatting.model.vo.ChatRoom;
-import com.kh.dots.chatting.model.vo.ChatRoomJoin;
-import com.kh.dots.common.Utils;
-import com.kh.dots.common.model.vo.Images;
-import com.kh.dots.common.model.vo.Search;
-import com.kh.dots.common.service.CommonService;
-import com.kh.dots.feed.model.vo.Choice;
-import com.kh.dots.feed.model.vo.Feed;
-import com.kh.dots.feed.model.vo.Like;
-import com.kh.dots.feed.model.vo.Reply;
-import com.kh.dots.feed.service.FeedService;
-import com.kh.dots.member.model.service.MemberService;
-import com.kh.dots.member.model.vo.Friend;
-import com.kh.dots.member.model.vo.Member;
-
-import lombok.extern.slf4j.Slf4j;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpSession;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Controller
 @SessionAttributes({"loginUser"})
+@RequiredArgsConstructor
 public class FeedController {
 
-	@Autowired
-	private FeedService fService;
+	private final FeedService fService;
 	
-	@Autowired MemberService mService;
+	private final MemberService mService;
 	
-	@Autowired
-	private ServletContext application;
-	
-	@Autowired
-	private CommonService cService;
-	
-	@Autowired
-	private ChatService chService;
+	private final ServletContext application;
+
+	private final ChatService chService;
 
 	@GetMapping("/mainFeed")
 	public String forwardFeedMain(HttpSession Session,Model model) {
@@ -65,7 +54,7 @@ public class FeedController {
 		List <Reply> reply = fService.reply4();
 		List <Like> like = fService.like4(m.getUserNo());
 		List <Choice> choice = fService.choice4(m.getUserNo());
-		List <Friend> follwer = fService.friend4(m.getUserNo());
+		List <Friend> follower = fService.friend4(m.getUserNo());
 		List <Friend> follow4 = fService.friend5(m.getUserNo());
 		List <Choice> choiceFilter = fService.choiceFilter();
 		List <Friend> friendList = fService.friendList(m.getUserNo());
@@ -85,7 +74,7 @@ public class FeedController {
 		model.addAttribute("cf",choiceFilter);
 		model.addAttribute("m",m);
 		model.addAttribute("fw",follow4);
-		model.addAttribute("fr",follwer);
+		model.addAttribute("fr",follower);
 		model.addAttribute("ci",choice);
 		model.addAttribute("lk",like);
 		model.addAttribute("rp",reply);
@@ -94,14 +83,19 @@ public class FeedController {
 		model.addAttribute("fd",feedList);
 		model.addAttribute("friendList",friendList);
 		
-		return "sns/mainFeed.jsp";
+		return "sns/mainFeed";
 	}
 	
 	@GetMapping("/MyFeedEnroll.me")
-	public String MyFeedEnroll(HttpSession session) {
+	public ResponseEntity<MyFeed> MyFeedEnroll(HttpSession session) {
 		Member loginUser = (Member) session.getAttribute("loginUser");
 		Images profileImg = mService.selectListImages(loginUser.getUserNo());
-		return "/member/MyFeedEnroll.jsp";
+
+		MyFeed f = new MyFeed();
+		f.setLoginUser(loginUser);
+		f.setProfileImg(profileImg);
+
+		return new ResponseEntity<>(f, HttpStatus.OK);
 	}
 	
 	@PostMapping("/feedEnroll.fe") 
@@ -163,9 +157,10 @@ public class FeedController {
 		
 		int result1 = fService.insertFeed(feed);
 		int result2 = fService.insertFeedImg(imgs);
+
 		if(result1>0 && result2>0) {
 			session.setAttribute("alertMsg","게시물 작성 성공!");
-			return "redirect:/MyFeed.me";
+			return "redirect:/MyFeedEnroll.me";
 		}else {
 			session.setAttribute("alertMsg","게시물 작성 실패!");
 			return "redirect:/MyFeedEnroll.me";
@@ -181,7 +176,7 @@ public class FeedController {
 		List<Images> feedImgs = fService.selectFeedImgList(fno);
 		model.addAttribute("feed",feed);
 		model.addAttribute("feedImgs",feedImgs);
-		return "/member/MyFeedEdit.jsp";
+		return "member/MyFeedEdit";
 	}
 	
 	@PostMapping("/feedEdit.fe")
@@ -227,8 +222,7 @@ public class FeedController {
 		if (m != null) {
 			r.setReplyWriter(m.getUserNo());
 		}
-		int result = fService.insertReply(r);
-		return result;
+        return fService.insertReply(r);
 		
 	}
 	

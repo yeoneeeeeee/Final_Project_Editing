@@ -1,40 +1,28 @@
 package com.kh.dots.common.controller;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpSession;
-
-import org.apache.ibatis.session.RowBounds;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
 import com.kh.dots.chatting.model.service.ChatService;
 import com.kh.dots.chatting.model.vo.ChatRoom;
 import com.kh.dots.chatting.model.vo.ChatRoomJoin;
 import com.kh.dots.common.model.template.Pagination;
-import com.kh.dots.common.model.vo.Alarm;
-import com.kh.dots.common.model.vo.Images;
-import com.kh.dots.common.model.vo.PageInfo;
-import com.kh.dots.common.model.vo.Report;
-import com.kh.dots.common.model.vo.Search;
+import com.kh.dots.common.model.vo.*;
 import com.kh.dots.common.service.CommonService;
 import com.kh.dots.feed.model.vo.Feed;
 import com.kh.dots.feed.service.FeedService;
 import com.kh.dots.member.model.service.MemberService;
 import com.kh.dots.member.model.vo.Friend;
 import com.kh.dots.member.model.vo.Member;
-
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.session.RowBounds;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Controller
@@ -217,7 +205,7 @@ public class CommonController {
 		model.addAttribute("otherUser", otherUser);
 		model.addAttribute("myImglist", myImglist);
 
-		return "member/MyFeed.jsp";
+		return "/member/MyFeed.jsp";
 	}
 	
 	@GetMapping("/myMessage.ms")
@@ -265,7 +253,7 @@ public class CommonController {
 		model.addAttribute("memList", WListTrue);
 		model.addAttribute("pi", pi);
 
-		return "admin/adminMain.jsp";
+		return "admin/adminMain";
 	}
 	
 	@ResponseBody
@@ -315,7 +303,7 @@ public class CommonController {
 		log.info("pi ={}", pi);
 		model.addAttribute("feList", feList);
 		model.addAttribute("pi", pi);
-		return "admin/adminFeed.jsp";
+		return "admin/adminFeed";
 	}
 
 	@PostMapping("/deleteFeed")
@@ -357,7 +345,7 @@ public class CommonController {
 		
 		model.addAttribute("WList", WListTrue);
 		model.addAttribute("pi", pi);
-		return "admin/adminWList.jsp";
+		return "admin/adminWList";
 	}
 	
 	@GetMapping("/adminBList")
@@ -386,7 +374,7 @@ public class CommonController {
 		
 		model.addAttribute("BList", BListTrue);
 		model.addAttribute("pi", pi);
-		return "admin/adminBList.jsp";
+		return "admin/adminBList";
 	}
 	
 	@GetMapping("/adminReport")
@@ -409,7 +397,7 @@ public class CommonController {
 		model.addAttribute("rlist", rlist);
 		model.addAttribute("pi", pi);
 		
-		return "admin/adminReport.jsp";
+		return "admin/adminReport";
 	}
 	
 	@ResponseBody

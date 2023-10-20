@@ -1,13 +1,22 @@
 package com.kh.dots.feed.service;
 
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.kh.dots.feed.model.vo.req.FeedReq;
+import com.kh.dots.feed.model.vo.res.FeedRes;
+import com.kh.dots.member.controller.BaseController;
+import com.kh.dots.member.controller.MemberApiController;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.kh.dots.common.Utils;
@@ -22,8 +31,12 @@ import com.kh.dots.member.model.vo.Member;
 
 import lombok.extern.slf4j.Slf4j;
 
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class FeedServiceImpl implements FeedService {
 	
 	@Autowired
@@ -48,6 +61,8 @@ public class FeedServiceImpl implements FeedService {
 	public List<Images> selectFeedImgList(int fno) {
 		return fDao.selectFeedImgList(fno);
 	}
+
+	private final ServletContext application;
 
 	@Override
 	public int updateFeed(Feed feed, List<MultipartFile> upfiles, String severFolderPath, String webPath,
@@ -213,5 +228,73 @@ public class FeedServiceImpl implements FeedService {
 	@Override
 	public List<Friend> friendList(int userNo) {
 		return fDao.friendList(userNo);
+	}
+
+	@Override
+	public FeedRes insertFeedEnroll(FeedReq req) {
+//		RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
+//		HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+//		Member loginUser = (Member)request.getSession().getAttribute(BaseController.LOGIN_USER);
+
+		req.getFeed().setFeedHashtag(req.getHashTag());
+		req.getFeed().setFeedWriter(req.getMember().getUserNo());
+		log.info("Feed={}",req.getFeed());
+
+		List<MultipartFile> feedImgs = new ArrayList<>();
+		feedImgs.add(req.getFeedImg1());
+		feedImgs.add(req.getFeedImg2());
+		feedImgs.add(req.getFeedImg3());
+		feedImgs.add(req.getFeedImg4());
+		feedImgs.add(req.getFeedImg5());
+
+		String webPath = application.getRealPath(MemberApiController.WEB_PATH);
+
+		// 디렉토리생성 , 해당디렉토리가 존재하지 않는다면 생성
+		File dir = new File(webPath);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		List<Images> imgs = new ArrayList<>();
+		int level = 2;
+		for(MultipartFile img : feedImgs) {
+			if(img != null && !img.isEmpty()) {
+				String originalFilename = img.getOriginalFilename();
+				if(originalFilename != null && !originalFilename.isEmpty()) {
+					String changeName = Utils.saveFile(img, webPath);
+					Images image = Images.builder()
+							.fileWriter(req.getMember().getUserNo())
+							.changeName(changeName)
+							.originName(originalFilename)
+							.fileLevel(level++)
+							.filePath(webPath)
+							.build();
+					imgs.add(image);
+				}
+			}else {
+				Images image = Images.builder()
+						.fileWriter(req.getMember().getUserNo())
+						.changeName("DotLogo_D.png")
+						.originName("DotLogo_D.png")
+						.fileLevel(level++)
+						.filePath(webPath)
+						.build();
+				imgs.add(image);
+			}
+		}
+		log.info("imgs={}",imgs);
+
+		req.getFeed().setFeedImgs(feedImgs);
+		req.getFeed().setImgs(imgs);
+
+		int result = 0;
+		log.debug("f : {}" ,req.getFeed());
+		result += this.insertFeed(req.getFeed());
+		result += this.insertFeedImg(imgs);
+
+		FeedRes res = new FeedRes();
+		res.setFeed(req.getFeed());
+		res.setResult(result);
+
+		return res;
 	}
 }

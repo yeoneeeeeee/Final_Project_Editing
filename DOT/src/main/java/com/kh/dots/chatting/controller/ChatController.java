@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -46,16 +47,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller
 @SessionAttributes({ "loginUser", "chatRoomNo" })
+@RequiredArgsConstructor
 public class ChatController {
 
-	@Autowired
-	private ChatService cService;
+	private final ChatService cService;
 
 	@Autowired
 	private MemberService mService;
 
-	@Autowired
-	private ServletContext application;
+	private final ServletContext application;
 	
 	@Autowired
 	private FeedService fdService;
@@ -69,9 +69,9 @@ public class ChatController {
 		List<Member> follow = mService.searchFollowList(loginUser.getUserNo());
 		List<ChatRoomJoin> crImage = cService.selectChatRoomListImage(loginUser.getUserNo());
 
-		List<ChatMessage> msgList = new ArrayList();
-		ChatMessage msg = new ChatMessage();
-		
+		List<ChatMessage> msgList = new ArrayList<>();
+		ChatMessage msg;
+
 		String date = "";
 		
 		for(int i = 0; i < crList.size(); i++) {
@@ -105,15 +105,12 @@ public class ChatController {
 		model.addAttribute("chatMessageList", msgList);
 		
 		
-		return "forward:Chatting.jsp";
+		return "chat/Chatting";
 	}
 
 	@PostMapping("/chat/openChatRoom")
-	public String openChatRoom(HttpSession session, Model model, ChatRoom room, ChatRoomJoin join,
+	public String openChatRoom(HttpSession session, ChatRoom room, ChatRoomJoin join,
 			@RequestParam(name = "userNo") List<Integer> addList, RedirectAttributes ra) {
-
-		int result = 0;
-		int chatRoomNo = 0;
 
 		String path = "redirect:/chat/";
 
@@ -137,15 +134,15 @@ public class ChatController {
 
 		room.setUserNo(loginUser.getUserNo());
 		room.setTitle(title);
-		
-		chatRoomNo = cService.openChatRoom(room);
+
+		int chatRoomNo = cService.openChatRoom(room);
 
 		for (int i : intList) {
 
 			join.setChatRoomNo(chatRoomNo);
 			join.setUserNo(i);
 
-			result = cService.insertChatRoom(join);
+			cService.insertChatRoom(join);
 		}
 
 		if (chatRoomNo > 0) {
@@ -164,41 +161,34 @@ public class ChatController {
 
 		Member loginUser = (Member) session.getAttribute("loginUser");
 
-		Map<String, Object> map = new HashMap();
+		Map<String, Object> map = new HashMap<>();
 		
 		map.put("userNo", loginUser.getUserNo());
 		map.put("keyword", keyword);
 		
 		List<ChatRoomJoin> crImage = cService.selectChatRoomListImage(loginUser.getUserNo());
 		List<ChatRoom> room = cService.selectChatRoomListByKeyword(map);
-		List<ChatMessage> msgList = new ArrayList();
+		List<ChatMessage> msgList = new ArrayList<>();
 		
-		ChatMessage msg = new ChatMessage();
-		
-		String date = "";
-		
+		ChatMessage msg;
+
 		for(int i = 0; i < room.size(); i++) {
-			
+
 			msg = cService.selectNewMsg(room.get(i).getChatRoomNo());
-			
+
 			if(msg == null) {
-				
 				msg = new ChatMessage();
-				
 				msg.setMessage("현재 대화내용이 존재하지 않습니다.");
-				
 			} else {
-				
 				if(msg.getMessage().contains("/")) {
-					
 					msg.setMessage("사진을 보냈습니다.");
 				}
-				date = dateFormat(msg.getEnrollDate());
-				msg.setEnrollDate(date);
+				msg.setEnrollDate(dateFormat(msg.getEnrollDate()));
 			}
 			msg.setChatRoomNo(room.get(i).getChatRoomNo());
 			msgList.add(msg);
 		}
+
 		model.addAttribute("chatRoomList", room);
 		model.addAttribute("chatRoomImage", crImage);
 		model.addAttribute("chatMessageList", msgList);

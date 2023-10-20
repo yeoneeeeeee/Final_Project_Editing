@@ -3,6 +3,8 @@ package com.kh.dots.feed.service;
 import java.util.List;
 import java.util.Map;
 
+import com.kh.dots.feed.model.vo.req.FeedReq;
+import com.kh.dots.feed.model.vo.res.FeedRes;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.kh.dots.common.model.vo.Images;
@@ -69,4 +71,10 @@ public interface FeedService {
 	
 	List<Friend> friendList(int userNo);
 
+	/**
+	 * 인터페이스니까
+	 * @param req
+	 * @return
+	 */
+	FeedRes insertFeedEnroll(FeedReq req);
 }

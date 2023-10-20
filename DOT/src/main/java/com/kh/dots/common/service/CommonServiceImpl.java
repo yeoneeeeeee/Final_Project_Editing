@@ -7,7 +7,7 @@ import org.apache.ibatis.session.RowBounds;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.kh.dots.common.model.dao.CommonDao;
+import com.kh.dots.common.dao.CommonDao;
 import com.kh.dots.common.model.vo.Alarm;
 import com.kh.dots.common.model.vo.Images;
 import com.kh.dots.common.model.vo.Report;
